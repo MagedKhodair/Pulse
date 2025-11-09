@@ -6,6 +6,8 @@ from db import execute_query, execute_command
 
 user_api = FastAPI(title="User API")
 
+test = 0
+
 @user_api.post("/signup")
 async def signup_user(user: UserSignUp):
     """Create a new user"""
