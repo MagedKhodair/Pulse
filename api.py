@@ -1,14 +1,18 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, HTTPException
 import uuid
 from datetime import datetime
 from schemas import UserSignUp, UserResponse, UserSignIn
 from db import execute_query, execute_command
 
-user_api = FastAPI(title="User API")
+# Change FastAPI to APIRouter
+user_router = APIRouter(
+    prefix="/users",
+    tags=["users"],
+    responses={404: {"description": "Not found"}},
+)
 
-test = 0
 
-@user_api.post("/signup")
+@user_router.post("/signup")
 async def signup_user(user: UserSignUp):
     """Create a new user"""
     try:
@@ -44,7 +48,7 @@ async def signup_user(user: UserSignUp):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-@user_api.post("/signin")
+@user_router.post("/signin")
 async def sign_in_user(credentials: UserSignIn):
     """Sign in a user by email"""
     try:
