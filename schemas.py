@@ -5,6 +5,7 @@ from typing import Optional
 
 # Request Schemas
 class UserSignUp(BaseModel):
+    user_id: str = Field(..., description="Unique user identifier")
     first_name: str = Field(..., min_length=1, max_length=100, description="First name is required, max 100 characters")
     last_name: str = Field(..., min_length=1, max_length=100, description="Last name is required, max 100 characters")
     address: Optional[str] = Field(None, max_length=500, description="Address is optional, max 500 characters")
