@@ -11,7 +11,6 @@ user_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-
 @user_router.post("/signup")
 async def signup_user(user: UserSignUp):
     """Create a new user"""
