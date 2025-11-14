@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException
 import uuid
-from datetime import datetime
-from schemas import UserSignUp, UserResponse, UserSignIn
+from datetime import date, datetime
+from schemas import TransactionResponse, UserSignUp, UserResponse, UserSignIn
 from db import execute_query, execute_command
 
 # Change FastAPI to APIRouter
@@ -74,3 +74,56 @@ async def sign_in_user(credentials: UserSignIn):
         raise  # Re-raise HTTP exceptions  
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+    
+
+purchase_router = APIRouter(
+    prefix="/purchases",
+    tags=["purchases"],
+    responses={404: {"description": "Not found"}},
+)
+
+@purchase_router.post("/transactions/{user_id}", response_model=list[TransactionResponse])
+async def fetch_transactions(user_id: str):
+    rows = await execute_query("""
+        SELECT
+            transaction_id,
+            user_id,
+            merchant_id,
+            transaction_date,
+            transaction_amount,
+            transaction_savings_amount,
+            price_tracking_end_date,
+            transaction_savings_percentage,
+            created_at
+        FROM app_schema.transaction
+        WHERE user_id = $1
+    """, user_id)
+
+    if not rows:
+        raise HTTPException(status_code=404, detail="No transactions found for this user")
+
+    today = date.today()
+
+    def compute_days_left(end_date: datetime | None) -> int | None:
+        if not end_date:
+            return None
+        end_day = end_date.date()
+        if today >= end_day:
+            return 0
+        return (end_day - today).days
+
+    return [
+        TransactionResponse(
+            transaction_id=str(tx["transaction_id"]),
+            user_id=str(tx["user_id"]),
+            merchant_id=str(tx["merchant_id"]),
+            transaction_date=tx["transaction_date"].isoformat(),
+            transaction_amount=float(tx["transaction_amount"]),
+            transaction_savings_amount=float(tx["transaction_savings_amount"]),
+            price_tracking_end_date=tx["price_tracking_end_date"].isoformat(),
+            transaction_savings_percentage=float(tx["transaction_savings_percentage"]),
+            created_at=tx["created_at"].isoformat(),
+            price_adjustment_days_left=compute_days_left(tx["price_tracking_end_date"])
+        )
+        for tx in rows   # ← this loops through every row returned by the query
+    ]

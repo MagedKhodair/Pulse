@@ -24,3 +24,15 @@ class UserResponse(BaseModel):
     login_email: str = Field(..., description="User's email address")
     created_at: str = Field(..., description="Account creation timestamp")
 
+
+class TransactionResponse(BaseModel):
+    transaction_id: str = Field(..., description="Unique transaction identifier")
+    user_id: str = Field(..., description="Identifier of the user associated with the transaction")
+    merchant_id: str = Field(..., description="Identifier of the merchant involved in the transaction")
+    transaction_date: str = Field(..., description="Date of the transaction")
+    transaction_amount: float = Field(..., description="Total amount of the transaction")
+    transaction_savings_amount: float = Field(..., description="Amount saved in the transaction")
+    price_tracking_end_date: str = Field(..., description="End date for price tracking")
+    transaction_savings_percentage: float = Field(..., description="Percentage of savings in the transaction")
+    created_at: str = Field(..., description="Timestamp when the transaction was created")
+    price_adjustment_days_left: int = Field(..., description="Days left for price adjustment eligibility")
