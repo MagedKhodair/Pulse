@@ -82,7 +82,7 @@ purchase_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@purchase_router.post("/transactions/{user_id}", response_model=list[TransactionResponse])
+@purchase_router.get("/transactions/{user_id}", response_model=list[TransactionResponse])
 async def fetch_transactions(user_id: str):
     rows = await execute_query("""
         SELECT
