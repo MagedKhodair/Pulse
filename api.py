@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 import uuid
 from datetime import date, datetime
@@ -88,14 +89,15 @@ async def fetch_transactions(user_id: str):
         SELECT
             transaction_id,
             user_id,
-            merchant_id,
             transaction_date,
             transaction_amount,
             transaction_savings_amount,
             price_tracking_end_date,
             transaction_savings_percentage,
-            created_at
+            item_count,
+            merchant.merchant_name
         FROM app_schema.transaction
+        JOIN app_schema.merchant ON transaction.merchant_id = merchant.merchant_id
         WHERE user_id = $1
     """, user_id)
 
@@ -111,19 +113,24 @@ async def fetch_transactions(user_id: str):
         if today >= end_day:
             return 0
         return (end_day - today).days
+    
+    def derive_status(days_left: Optional[int]) -> str:
+        return "Inactive" if days_left == 0 or days_left is None else "Active"
 
     return [
         TransactionResponse(
             transaction_id=str(tx["transaction_id"]),
             user_id=str(tx["user_id"]),
-            merchant_id=str(tx["merchant_id"]),
-            transaction_date=tx["transaction_date"].isoformat(),
+            transaction_date=tx["transaction_date"].strftime("%d %B, %Y"),
             transaction_amount=float(tx["transaction_amount"]),
             transaction_savings_amount=float(tx["transaction_savings_amount"]),
-            price_tracking_end_date=tx["price_tracking_end_date"].isoformat(),
             transaction_savings_percentage=float(tx["transaction_savings_percentage"]),
-            created_at=tx["created_at"].isoformat(),
-            price_adjustment_days_left=compute_days_left(tx["price_tracking_end_date"])
+            price_adjustment_days_left=compute_days_left(tx["price_tracking_end_date"]),
+            item_count=tx["item_count"],
+            status=derive_status(compute_days_left(tx["price_tracking_end_date"])),
+            merchant_name=tx["merchant_name"]
+
+            
         )
         for tx in rows   # ← this loops through every row returned by the query
     ]
