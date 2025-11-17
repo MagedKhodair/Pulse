@@ -1,8 +1,9 @@
 from typing import Optional
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 import uuid
 from datetime import date, datetime
-from schemas import TransactionResponse, UserSignUp, UserResponse, UserSignIn
+from auth import get_current_user
+from schemas import TransactionResponse, UserSignUp, UserResponse, UserSignIn, TransactionItemResponse
 from db import execute_query, execute_command
 
 # Change FastAPI to APIRouter
@@ -29,9 +30,9 @@ async def signup_user(user: UserSignUp):
         
         # Insert new user using execute_command
         await execute_command("""
-            INSERT INTO Application_User (user_id, first_name, last_name, address, login_email, created_at)
+            INSERT INTO Application_User (user_id, first_name, last_name, address, login_email, membership_status)
             VALUES ($1, $2, $3, $4, $5, $6)
-        """, user.user_id, user.first_name, user.last_name, user.address, user.login_email, created_at)
+        """, user.user_id, user.first_name, user.last_name, user.address, user.login_email, user.membership_status)
         
         return UserResponse(
             user_id=user.user_id,
@@ -39,7 +40,7 @@ async def signup_user(user: UserSignUp):
             last_name=user.last_name,
             address=user.address,
             login_email=user.login_email,
-            created_at=str(created_at)
+            membership_status=user.membership_status
         )
     
     except HTTPException:
@@ -53,7 +54,7 @@ async def sign_in_user(credentials: UserSignIn):
     try:
         # Find user using execute_query
         users = await execute_query("""
-            SELECT user_id, first_name, last_name, address, login_email, created_at
+            SELECT user_id, first_name, last_name, address, login_email, membership_status
             FROM Application_User
             WHERE login_email = $1
         """, credentials.login_email)
@@ -66,7 +67,7 @@ async def sign_in_user(credentials: UserSignIn):
                 last_name=user['last_name'],
                 address=user['address'],
                 login_email=user['login_email'],
-                created_at=str(user['created_at'])
+                membership_status=user['membership_status']
             )
         else:
             raise HTTPException(status_code=404, detail="User not found")
@@ -83,9 +84,12 @@ purchase_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@purchase_router.get("/transactions/{user_id}", response_model=list[TransactionResponse])
-async def fetch_transactions(user_id: str):
-    rows = await execute_query("""
+@purchase_router.get("/transactions", response_model=list[TransactionResponse])
+async def fetch_transactions(current_user: dict = Depends(get_current_user)):
+    
+    user_id = current_user["uid"]
+    rows = await execute_query(
+        """
         SELECT
             transaction_id,
             user_id,
@@ -99,7 +103,9 @@ async def fetch_transactions(user_id: str):
         FROM app_schema.transaction
         JOIN app_schema.merchant ON transaction.merchant_id = merchant.merchant_id
         WHERE user_id = $1
-    """, user_id)
+        """,
+        user_id,
+    )
 
     if not rows:
         raise HTTPException(status_code=404, detail="No transactions found for this user")
@@ -113,7 +119,7 @@ async def fetch_transactions(user_id: str):
         if today >= end_day:
             return 0
         return (end_day - today).days
-    
+
     def derive_status(days_left: Optional[int]) -> str:
         return "Inactive" if days_left == 0 or days_left is None else "Active"
 
@@ -128,9 +134,43 @@ async def fetch_transactions(user_id: str):
             price_adjustment_days_left=compute_days_left(tx["price_tracking_end_date"]),
             item_count=tx["item_count"],
             status=derive_status(compute_days_left(tx["price_tracking_end_date"])),
-            merchant_name=tx["merchant_name"]
-
-            
+            merchant_name=tx["merchant_name"],
         )
-        for tx in rows   # ← this loops through every row returned by the query
+        for tx in rows
+    ]
+
+@purchase_router.get("/items/{transaction_id}", response_model=list[TransactionItemResponse])
+async def fetch_transaction_items(transaction_id: str, current_user: dict = Depends(get_current_user)):
+    user_id = current_user["uid"]
+    rows = await execute_query(
+        """
+        SELECT
+            product.title AS product_title,
+            item.quantity,
+            item.purchase_price,
+            item.lowest_price,
+            item.total_price_difference_amount
+        FROM app_schema.item
+        JOIN app_schema.product
+            ON item.product_id = product.product_id
+        JOIN app_schema.transaction
+            ON item.transaction_id = transaction.transaction_id
+        WHERE transaction.user_id = $1
+          AND item.transaction_id = $2
+        """,
+        user_id,
+        transaction_id,
+    )
+    if not rows:
+        raise HTTPException(status_code=404, detail="No items found for this transaction")
+
+    return [
+        TransactionItemResponse(
+            product_title=row["product_title"],
+            quantity=row["quantity"],
+            purchase_price=float(row["purchase_price"]),
+            lowest_price=float(row["lowest_price"]),
+            total_price_difference_amount=float(row["total_price_difference_amount"]),
+        )
+        for row in rows
     ]

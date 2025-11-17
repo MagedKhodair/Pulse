@@ -10,10 +10,10 @@ class UserSignUp(BaseModel):
     last_name: str = Field(..., min_length=1, max_length=100, description="Last name is required, max 100 characters")
     address: Optional[str] = Field(None, max_length=500, description="Address is optional, max 500 characters")
     login_email: EmailStr = Field(..., description="Valid email address is required")
+    membership_status: str = Field(default="Inactive", description="Membership tier for the user")
 
 class UserSignIn(BaseModel):
     login_email: EmailStr = Field(..., description="Email address for authentication")
-
 
 # Response Schemas
 class UserResponse(BaseModel): 
@@ -22,7 +22,7 @@ class UserResponse(BaseModel):
     last_name: str = Field(..., description="User's last name")
     address: Optional[str] = Field(None, description="User's address")
     login_email: str = Field(..., description="User's email address")
-    created_at: str = Field(..., description="Account creation timestamp")
+    membership_status: str = Field(..., description="User's membership status")
 
 
 class TransactionResponse(BaseModel):
@@ -37,3 +37,9 @@ class TransactionResponse(BaseModel):
     status : str = Field(..., description="Status of the transaction")
     merchant_name: str = Field(..., description="Name of the merchant associated with the transaction")
 
+class TransactionItemResponse(BaseModel):
+    product_title: str = Field(..., description="Title of the product in the transaction")
+    quantity: int = Field(..., description="Quantity purchased")
+    purchase_price: float = Field(..., description="Recorded purchase price")
+    lowest_price: float = Field(..., description="Lowest observed price")
+    total_price_difference_amount: float = Field(..., description="Total difference compared to the lowest price")

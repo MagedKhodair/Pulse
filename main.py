@@ -1,12 +1,18 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 import uvicorn
+from auth import init_firebase
 from db import init_db, close_db  
 from api import user_router, purchase_router
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     print("🚀 Starting up PULSE API...")
+    init_firebase()
     await init_db()  
     yield 
     print("🔄 Shutting down PULSE API...")
@@ -17,6 +23,7 @@ app = FastAPI(
     title="PULSE API",
     lifespan=lifespan  
 )
+
 
 # Include Routers
 app.include_router(user_router)
