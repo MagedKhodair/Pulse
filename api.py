@@ -1,9 +1,8 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Request
-import uuid
 from datetime import date, datetime
 from auth import get_current_user
-from schemas import TransactionResponse, UserSignUp, UserResponse, UserSignIn, TransactionItemResponse
+from schemas import MembershipStatusUpdate, TransactionResponse, UserSignUp, UserResponse, TransactionItemResponse, UpdatedMembershipResponse
 from db import execute_query, execute_command
 
 # Change FastAPI to APIRouter
@@ -13,8 +12,8 @@ user_router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 
-@user_router.post("/signup")
-async def signup_user(user: UserSignUp):
+@user_router.post("/create_profile")
+async def create_profile(user: UserSignUp, current_user: dict = Depends(get_current_user)):
     """Create a new user"""
     try:
         # Check if user already exists
@@ -48,16 +47,16 @@ async def signup_user(user: UserSignUp):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
-@user_router.post("/signin")
-async def sign_in_user(credentials: UserSignIn):
-    """Sign in a user by email"""
+@user_router.get("/get_profile")
+async def get_profile(current_user: dict = Depends(get_current_user)):
+    """Get the profile of the current user"""
     try:
         # Find user using execute_query
         users = await execute_query("""
             SELECT user_id, first_name, last_name, address, login_email, membership_status
             FROM Application_User
-            WHERE login_email = $1
-        """, credentials.login_email)
+            WHERE user_id = $1
+        """, current_user["uid"])
         
         if users:  # If list is not empty
             user = users[0]  # Get first (and should be only) result
@@ -77,6 +76,29 @@ async def sign_in_user(credentials: UserSignIn):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
     
+@user_router.patch("/membership_status_update")
+async def update_membership_status(Payload: MembershipStatusUpdate, current_user: dict = Depends(get_current_user)):
+    """Update the membership status of the current user"""
+    try:
+        new_status = Payload.membership_status
+        user_id = current_user["uid"]
+        
+        # Update membership status using execute_command
+        result = await execute_command("""
+            UPDATE Application_User
+            SET membership_status = $1
+            WHERE user_id = $2
+        """, new_status, user_id)
+        
+        if result == 0: # Post update guard
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        return UpdatedMembershipResponse(
+            user_id=user_id,
+            membership_status=new_status
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
 
 purchase_router = APIRouter(
     prefix="/purchases",
@@ -86,8 +108,9 @@ purchase_router = APIRouter(
 
 @purchase_router.get("/transactions", response_model=list[TransactionResponse])
 async def fetch_transactions(current_user: dict = Depends(get_current_user)):
-    
     user_id = current_user["uid"]
+
+    current_user: dict = Depends(get_current_user)
     rows = await execute_query(
         """
         SELECT
@@ -139,7 +162,7 @@ async def fetch_transactions(current_user: dict = Depends(get_current_user)):
         for tx in rows
     ]
 
-@purchase_router.get("/items/{transaction_id}", response_model=list[TransactionItemResponse])
+@purchase_router.get("/transactions/{transaction_id}", response_model=list[TransactionItemResponse])
 async def fetch_transaction_items(transaction_id: str, current_user: dict = Depends(get_current_user)):
     user_id = current_user["uid"]
     rows = await execute_query(

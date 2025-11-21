@@ -1,5 +1,5 @@
 from pydantic import BaseModel, EmailStr, Field
-from typing import Optional
+from typing import Optional, Literal
 
 
 
@@ -12,8 +12,9 @@ class UserSignUp(BaseModel):
     login_email: EmailStr = Field(..., description="Valid email address is required")
     membership_status: str = Field(default="Inactive", description="Membership tier for the user")
 
-class UserSignIn(BaseModel):
-    login_email: EmailStr = Field(..., description="Email address for authentication")
+class MembershipStatusUpdate(BaseModel):
+    membership_status: Literal["Inactive", "Active"]
+
 
 # Response Schemas
 class UserResponse(BaseModel): 
@@ -43,3 +44,7 @@ class TransactionItemResponse(BaseModel):
     purchase_price: float = Field(..., description="Recorded purchase price")
     lowest_price: float = Field(..., description="Lowest observed price")
     total_price_difference_amount: float = Field(..., description="Total difference compared to the lowest price")
+
+class UpdatedMembershipResponse(BaseModel):
+    user_id: str = Field(..., description="Unique user identifier")
+    membership_status: str = Field(..., description="Updated membership status")
