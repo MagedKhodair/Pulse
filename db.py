@@ -11,7 +11,6 @@ def pg_connection():
         database="postgres",
         server_settings={'search_path': 'app_schema'},
         ssl=ssl.create_default_context()
-        
     )
 
 # Connection pool functions
