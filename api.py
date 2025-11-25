@@ -132,9 +132,9 @@ async def fetch_transaction(transaction_id: str, current_user: dict = Depends(ge
     if not result:
         raise HTTPException(status_code=404, detail="No transactions found for this user")
 
-    row = result[0]  # Get the first (and only) row from the result
-    today = date.today()
+    row = result[0] 
 
+    today = date.today()
     def compute_days_left(end_date: datetime | None) -> int | None:
         if not end_date:
             return None
@@ -147,17 +147,17 @@ async def fetch_transaction(transaction_id: str, current_user: dict = Depends(ge
         return "Inactive" if days_left == 0 or days_left is None else "Active"
 
     return TransactionResponse(
-            transaction_id=str(row["transaction_id"]),
-            user_id=str(row["user_id"]),
-            transaction_date=row["transaction_date"].strftime("%d %B, %Y"),
-            transaction_amount=float(row["transaction_amount"]),
-            transaction_savings_amount=float(row["transaction_savings_amount"]),
-            transaction_savings_percentage=float(row["transaction_savings_percentage"]),
-            price_adjustment_days_left=compute_days_left(row["price_tracking_end_date"]),
-            item_count=row["item_count"],
-            status=derive_status(compute_days_left(row["price_tracking_end_date"])),
-            merchant_name=row["merchant_name"]
-        )
+        transaction_id=str(row["transaction_id"]),
+        user_id=str(row["user_id"]),
+        transaction_date=row["transaction_date"].strftime("%d %B, %Y"),
+        transaction_amount=float(row["transaction_amount"]),
+        transaction_savings_amount=float(row["transaction_savings_amount"]),
+        transaction_savings_percentage=float(row["transaction_savings_percentage"]),
+        price_adjustment_days_left=compute_days_left(row["price_tracking_end_date"]),
+        item_count=row["item_count"],
+        status=derive_status(compute_days_left(row["price_tracking_end_date"])),
+        merchant_name=row["merchant_name"]
+    )
 
 
 @purchase_router.get("/transactions", response_model=list[TransactionResponse])
@@ -202,16 +202,16 @@ async def fetch_transactions(current_user: dict = Depends(get_current_user)):
 
     return [
         TransactionResponse(
-            transaction_id=str(["transaction_id"]),
-            user_id=str(["user_id"]),
-            transaction_date=["transaction_date"].strftime("%d %B, %Y"),
-            transaction_amount=float(["transaction_amount"]),
-            transaction_savings_amount=float(["transaction_savings_amount"]),
-            transaction_savings_percentage=float(["transaction_savings_percentage"]),
-            price_adjustment_days_left=compute_days_left(["price_tracking_end_date"]),
-            item_count=["item_count"],
-            status=derive_status(compute_days_left(["price_tracking_end_date"])),
-            merchant_name=["merchant_name"],
+            transaction_id=str(row["transaction_id"]),
+            user_id=str(row["user_id"]),
+            transaction_date=row["transaction_date"].strftime("%d %B, %Y"),
+            transaction_amount=float(row["transaction_amount"]),
+            transaction_savings_amount=float(row["transaction_savings_amount"]),
+            transaction_savings_percentage=float(row["transaction_savings_percentage"]),
+            price_adjustment_days_left=compute_days_left(row["price_tracking_end_date"]),
+            item_count=row["item_count"],
+            status=derive_status(compute_days_left(row["price_tracking_end_date"])),
+            merchant_name=row["merchant_name"],
         )
         for row in rows
     ]
@@ -242,7 +242,7 @@ async def fetch_transaction_items(transaction_id: str, current_user: dict = Depe
         transaction_id,
     )
     if not rows:
-        raise HTTPException(status_code=404, detail="No items found for this transaction")
+        raise HTTPException(status_code=404, detail="No transactions found.")
 
     return [
         TransactionItemResponse(
