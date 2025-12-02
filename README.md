@@ -11,7 +11,7 @@ Pulse is a smart consumer application that automatically tracks user purchases, 
 - Secure authentication using Firebase / JWT  
 - PostgreSQL-backed persistent storage  
 
-### For using Pulse (user testing)
+### For user testing
 To use the Pulse application, users only need:
 - A web browser with internet access
 - Login FlutterFlow
@@ -19,6 +19,9 @@ To use the Pulse application, users only need:
   <img width="1910" height="899" alt="image" src="https://github.com/user-attachments/assets/a46dcba9-59fd-40ce-aa5c-2ec2583ccbb8" />
 - View the application in Test Mode using the top right corner flashbolt icon
   <img width="1914" height="908" alt="image" src="https://github.com/user-attachments/assets/e1001929-f9e2-4549-a8d8-bb9015cc3a95" />
+
+### To access the hosted backend service
+Please visit: https://pulseapi-csf6duh4bmfad2af.canadacentral-01.azurewebsites.net/docs
 
 ## Project Structure
 
